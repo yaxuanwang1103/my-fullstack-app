@@ -7,13 +7,16 @@ function App() {
 
   // 页面一打开就从后端拿数据
   useEffect(() => {
-    axios.get('http://localhost:5174/api/todos').then(res => setTodos(res.data));
+    axios.get('http://localhost:3000/api/messages').then(res => setTodos(res.data.items || []));
   }, []);
 
   // 添加新任务
   const addTodo = async () => {
     if (!task.trim()) return;
-    const res = await axios.post('http://localhost:5174/api/todos', { task });
+    const res = await axios.post('http://localhost:3000/api/messages', { 
+  author: '匿名用户',
+  text: task 
+});
     setTodos([...todos, res.data]);
     setTask('');
   };
@@ -34,7 +37,7 @@ function App() {
       </div>
       <ul>
         {todos.map(t => (
-          <li key={t.id}>{t.task}</li>
+       <li key={t._id}>{t.text}</li>  
         ))}
       </ul>
     </div>
