@@ -4,9 +4,11 @@
   "type": "module",
   "description": "",
   "main": "index.js",
+
   "scripts": {
-  "start": "concurrently \"npm run dev --prefix frontend\" \"node src/server.js\""
+    "start": "concurrently \"npm run dev --prefix frontend\" \"node backend-a/server.js\" \"node backend-b/server.js\""
   },
+
   "keywords": [],
   "author": "",
   "license": "ISC",
