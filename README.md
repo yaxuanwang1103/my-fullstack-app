@@ -1,6 +1,6 @@
 # 🤖 智能待办清单 - 双后端协作系统
 
-一个基于 React + Express + MongoDB 的全栈应用，实现了双后端协作架构和智能任务分类功能。
+一个基于 React + Express + PostgreSQL 的全栈应用，实现了双后端协作架构和智能任务分类功能，支持 Docker 一键部署。
 
 ---
 
@@ -13,9 +13,9 @@
 - ✅ 基础的增删查改功能
 
 ### 阶段 2：数据库升级
-- ✅ 从 SQLite 迁移到 MongoDB Atlas
-- ✅ 使用云数据库实现数据持久化
-- ✅ 添加 Mongoose ODM
+- ✅ 从 SQLite 迁移到 PostgreSQL
+- ✅ 使用关系型数据库实现数据持久化
+- ✅ 添加 pg 驱动
 
 ### 阶段 3：双后端协作架构 ⭐ **（核心创新）**
 - ✅ 拆分为后端A（智能分类）和后端B（数据存储）
@@ -33,6 +33,12 @@
 - ✅ 实时统计分析
 - ✅ 可视化展示
 
+### 阶段 6：容器化部署 🐳 **（最新升级）**
+- ✅ Docker 容器化所有服务
+- ✅ Docker Compose 一键启动
+- ✅ PostgreSQL 容器化部署
+- ✅ 环境隔离和版本管理
+
 ---
 
 ## 🏗️ 系统架构
@@ -40,7 +46,8 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    前端 (React)                      │
-│              http://localhost:5175                   │
+│              http://localhost:5173                   │
+│              Docker Container: todoapp-frontend      │
 │                                                       │
 │  功能：                                               │
 │  • 用户界面                                           │
@@ -52,6 +59,7 @@
 ┌─────────────────────────────────────────────────────┐
 │            后端A - 智能分类服务 (Express)             │
 │              http://localhost:3000                   │
+│              Docker Container: todoapp-backend-a     │
 │                                                       │
 │  功能：                                               │
 │  • 接收前端请求                                       │
@@ -65,9 +73,10 @@
 ┌─────────────────────────────────────────────────────┐
 │            后端B - 数据存储服务 (Express)             │
 │              http://localhost:4000                   │
+│              Docker Container: todoapp-backend-b     │
 │                                                       │
 │  功能：                                               │
-│  • 连接 MongoDB Atlas 云数据库                        │
+│  • 连接 PostgreSQL 数据库                             │
 │  • 执行 CRUD 操作                                     │
 │  • 数据持久化                                         │
 │  • 返回结果给后端A                                    │
@@ -75,8 +84,9 @@
                        │
                        ↓
               ┌────────────────┐
-              │  MongoDB Atlas  │
-              │   云数据库      │
+              │   PostgreSQL    │
+              │  Docker Container│
+              │ todoapp-postgres│
               └────────────────┘
 ```
 
@@ -117,13 +127,13 @@
 
 ## 🚀 快速开始
 
-### 前置要求
+### 方式一：Docker 部署（推荐）⭐
 
-- Node.js 16+
-- MongoDB Atlas 账号（或本地 MongoDB）
+#### 前置要求
+- Docker Desktop
 - Git
 
-### 安装步骤
+#### 启动步骤
 
 1. **克隆项目**
 ```bash
@@ -131,7 +141,54 @@ git clone https://github.com/jinchengw888/my-fullstack-app.git
 cd my-fullstack-app
 ```
 
-2. **安装依赖**
+2. **配置环境变量**
+
+复制 `.env.example` 为 `.env`（PostgreSQL 配置已在 docker-compose.yml 中定义）：
+```bash
+cp .env.example .env
+```
+
+3. **一键启动所有服务**
+```bash
+docker-compose up --build
+```
+
+4. **访问应用**
+- 前端：http://localhost:5173
+- 后端A：http://localhost:3000
+- 后端B：http://localhost:4000
+- PostgreSQL：localhost:5432
+
+5. **停止服务**
+```bash
+docker-compose down
+```
+
+---
+
+### 方式二：本地开发部署
+
+#### 前置要求
+- Node.js 20+
+- PostgreSQL 15+
+- Git
+
+#### 安装步骤
+
+1. **克隆项目**
+```bash
+git clone https://github.com/jinchengw888/my-fullstack-app.git
+cd my-fullstack-app
+```
+
+2. **创建 PostgreSQL 数据库**
+```bash
+psql -U postgres
+CREATE DATABASE todoapp;
+\q
+```
+
+3. **安装依赖**
 ```bash
 # 安装根目录依赖
 npm install
@@ -152,27 +209,34 @@ npm install
 cd ..
 ```
 
-3. **配置环境变量**
+4. **配置环境变量**
 
 复制 `.env.example` 为 `.env`：
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，填入你的 MongoDB 连接字符串：
-```
+编辑 `.env` 文件，填入你的 PostgreSQL 配置：
+```env
+BACKEND_B_URL=http://localhost:4000
+
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=todoapp
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=你的密码
+
 PORT=3000
 PORT_B=4000
-MONGO_URL=mongodb+srv://用户名:密码@cluster.mongodb.net/数据库名?retryWrites=true&w=majority
 ```
 
-4. **启动项目**
+5. **启动项目**
 ```bash
 npm start
 ```
 
-5. **访问应用**
-- 前端：http://localhost:5175
+6. **访问应用**
+- 前端：http://localhost:5173
 - 后端A：http://localhost:3000
 - 后端B：http://localhost:4000
 
@@ -199,22 +263,25 @@ my-fullstack-app/
 ├── frontend/                 # 前端应用
 │   ├── src/
 │   │   └── App.jsx          # 主组件（包含统计和可视化）
+│   ├── Dockerfile           # 前端 Docker 配置
 │   ├── package.json
 │   └── vite.config.js
 │
 ├── backend-a/               # 后端A - 智能分类服务
 │   ├── server.js           # 主服务器（智能分析逻辑）
+│   ├── Dockerfile          # 后端A Docker 配置
 │   └── package.json
 │
 ├── backend-b/               # 后端B - 数据存储服务
 │   ├── server.js           # 主服务器
-│   ├── db.js               # MongoDB 连接
-│   ├── models/
-│   │   └── Message.js      # 数据模型
+│   ├── db.js               # PostgreSQL 连接
 │   ├── routes/
 │   │   └── messages.js     # API 路由
+│   ├── Dockerfile          # 后端B Docker 配置
 │   └── package.json
 │
+├── docker-compose.yml      # Docker Compose 配置
+├── .dockerignore          # Docker 忽略文件
 ├── package.json            # 根配置（启动脚本）
 ├── .env.example           # 环境变量示例
 ├── .gitignore
@@ -237,8 +304,14 @@ my-fullstack-app/
 
 ### 后端B（数据存储）
 - **Express** - Web 框架
-- **Mongoose** - MongoDB ODM
-- **MongoDB Atlas** - 云数据库
+- **pg** - PostgreSQL 驱动
+- **PostgreSQL** - 关系型数据库
+
+### 容器化
+- **Docker** - 容器化平台
+- **Docker Compose** - 多容器编排
+- **Node.js 20 Alpine** - 轻量级基础镜像
+- **PostgreSQL 15 Alpine** - 数据库镜像
 
 ---
 
@@ -265,7 +338,7 @@ my-fullstack-app/
    ↓
 5. 后端A转发到后端B (localhost:4000)
    ↓
-6. 后端B保存到 MongoDB
+6. 后端B保存到 PostgreSQL
    ↓
 7. 后端B返回结果给后端A
    ↓
@@ -292,10 +365,15 @@ my-fullstack-app/
 - 颜色和图标标识
 - 直观的数据展示
 
-### 4. 云数据库集成
-- 使用 MongoDB Atlas 云服务
-- 数据持久化和备份
-- 易于扩展
+### 4. 容器化部署
+- Docker 容器化所有服务
+- 一键启动完整环境
+- 环境隔离和版本控制
+
+### 5. PostgreSQL 数据库
+- 关系型数据库保证数据一致性
+- Docker 卷持久化数据
+- 易于备份和迁移
 
 ---
 
@@ -333,17 +411,24 @@ function analyzeTask(task) {
 
 ### 数据模型设计
 
-```javascript
-const TodoSchema = new mongoose.Schema({
-  author: String,
-  text: String,
-  category: { type: String, enum: ['work', 'study', 'life', 'other'] },
-  priority: { type: String, enum: ['high', 'normal', 'low'] },
-  deadline: Date,
-  tags: [String],
-  processedBy: String,
-  processedAt: Date
-}, { timestamps: true });
+```sql
+CREATE TABLE IF NOT EXISTS todos (
+  id SERIAL PRIMARY KEY,
+  author TEXT NOT NULL,
+  text TEXT NOT NULL,
+  category TEXT DEFAULT 'other',
+  priority TEXT DEFAULT 'normal',
+  deadline TIMESTAMP,
+  tags TEXT,
+  completed INTEGER DEFAULT 0,
+  "processedBy" TEXT,
+  "processedAt" TIMESTAMP,
+  email TEXT,
+  ip TEXT,
+  ua TEXT,
+  "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
@@ -357,6 +442,9 @@ const TodoSchema = new mongoose.Schema({
 - [ ] 支持多语言
 - [ ] 添加数据导出功能
 - [ ] 实现任务搜索和过滤
+- [ ] Kubernetes 部署支持
+- [ ] CI/CD 自动化部署
+- [ ] 监控和日志系统
 
 ---
 

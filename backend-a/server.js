@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BACKEND_B_URL = 'http://localhost:4000';
+const BACKEND_B_URL = process.env.BACKEND_B_URL || 'http://localhost:4000';
 
 // 智能分析任务函数
 function analyzeTask(task) {
