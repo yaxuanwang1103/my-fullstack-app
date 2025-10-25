@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { connectSQLite } from "./db.js";
+import { connectPostgreSQL } from "./db.js";  // 改名
 import messages from "./routes/messages.js";
 
 const app = express();
@@ -24,9 +24,9 @@ app.get("/health", (_, res) => res.json({ ok: true }));
 const PORT = process.env.PORT_B || 4000;
 
 try {
-  connectSQLite();
+  await connectPostgreSQL();  // 改为 async/await
   app.listen(PORT, () => console.log(`💾 后端B (数据存储) 运行在 http://localhost:${PORT}`));
 } catch (err) {
-  console.error("❌ SQLite connect error:", err);
+  console.error("❌ PostgreSQL connect error:", err);
   process.exit(1);
 }

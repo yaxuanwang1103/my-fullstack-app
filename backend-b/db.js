@@ -1,41 +1,66 @@
-import Database from "better-sqlite3";
-import path from "path";
-import { fileURLToPath } from "url";
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// 读取上级目录的 .env 文件
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-let db = null;
+import pg from "pg";
+const { Pool } = pg;
 
-export function connectSQLite(dbPath = "./database.db") {
-  const fullPath = path.resolve(__dirname, dbPath);
-  db = new Database(fullPath, { verbose: console.log });
-  
+let pool = null;
+
+export async function connectPostgreSQL() {
+  pool = new Pool({
+    host: process.env.POSTGRES_HOST || "localhost",
+    port: process.env.POSTGRES_PORT || 5432,
+    database: process.env.POSTGRES_DB || "todoapp",
+    user: process.env.POSTGRES_USER || "postgres",
+    password: process.env.POSTGRES_PASSWORD,
+  });
+
+  // 测试连接
+  try {
+    await pool.query("SELECT NOW()");
+    console.log("✅ PostgreSQL connected");
+  } catch (err) {
+    console.error("❌ PostgreSQL connection error:", err);
+    throw err;
+  }
+
   // 创建表
-  db.exec(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS todos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       author TEXT NOT NULL,
       text TEXT NOT NULL,
       category TEXT DEFAULT 'other',
       priority TEXT DEFAULT 'normal',
-      deadline TEXT,
+      deadline TIMESTAMP,
       tags TEXT,
       completed INTEGER DEFAULT 0,
-      processedBy TEXT,
-      processedAt TEXT,
+      "processedBy" TEXT,
+      "processedAt" TIMESTAMP,
       email TEXT,
       ip TEXT,
       ua TEXT,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  
-  console.log("✅ SQLite connected");
-  return db;
+
+  return pool;
 }
 
 export function getDB() {
-  if (!db) throw new Error("Database not initialized");
-  return db;
+  if (!pool) throw new Error("Database not initialized");
+  return pool;
+}
+
+export async function closeDB() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
 }
