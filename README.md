@@ -157,7 +157,7 @@ docker-compose up --build
 - 前端：http://localhost:5173
 - 后端A：http://localhost:3000
 - 后端B：http://localhost:4000
-- PostgreSQL：localhost:5432
+- PostgreSQL：localhost:5433 （避免与本地 PostgreSQL 冲突）
 
 5. **停止服务**
 ```bash
@@ -221,10 +221,10 @@ cp .env.example .env
 BACKEND_B_URL=http://localhost:4000
 
 POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 POSTGRES_DB=todoapp
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=你的密码
+POSTGRES_USER=todouser
+POSTGRES_PASSWORD=todopass123
 
 PORT=3000
 PORT_B=4000

@@ -45,7 +45,7 @@ docker-compose up --build
 
 | 容器名 | 服务 | 端口 | 说明 |
 |--------|------|------|------|
-| `todoapp-postgres` | PostgreSQL 15 | 5432 | 数据库服务 |
+| `todoapp-postgres` | PostgreSQL 15 | 5433 | 数据库服务（避免与本地冲突） |
 | `todoapp-backend-b` | 后端B | 4000 | 数据存储服务 |
 | `todoapp-backend-a` | 后端A | 3000 | 智能分类服务 |
 | `todoapp-frontend` | 前端 | 5173 | React 应用 |
@@ -137,7 +137,7 @@ docker-compose restart backend-b
 docker exec -it todoapp-postgres psql -U todouser -d todoapp
 
 # 方法2：从本地连接（如果安装了 psql）
-psql -h localhost -p 5432 -U todouser -d todoapp
+psql -h localhost -p 5433 -U todouser -d todoapp
 # 密码：todopass123
 ```
 
@@ -193,12 +193,27 @@ Error: bind: address already in use
 netstat -ano | findstr :5173
 netstat -ano | findstr :4000
 netstat -ano | findstr :3000
-netstat -ano | findstr :5432
+netstat -ano | findstr :5433
 
 # 停止占用端口的进程，或修改 docker-compose.yml 中的端口映射
 ```
 
-### 问题 2: PostgreSQL 连接失败
+### 问题 2: PostgreSQL 端口冲突（5432 已被占用）
+
+**原因：** 本地已安装 PostgreSQL 占用了 5432 端口
+
+**解决方案：**
+```bash
+# 方案1：停止本地 PostgreSQL 服务
+Stop-Service postgresql*
+
+# 方案2：使用不同端口（已配置为 5433）
+# docker-compose.yml 中已设置为 5433:5432
+```
+
+**说明：** 本项目默认使用 5433 端口避免冲突
+
+### 问题 3: PostgreSQL 连接失败
 
 **解决方案：**
 ```bash
@@ -321,6 +336,28 @@ docker top todoapp-backend-b
 - [ ] 实现 CI/CD 自动化部署
 - [ ] 添加监控和告警系统
 - [ ] 实现多环境部署（开发/测试/生产）
+
+---
+
+## 🔗 使用 DBeaver 连接数据库
+
+### 连接配置
+
+```
+主机:      127.0.0.1 或 localhost
+端口:      5433          ← 注意不是 5432
+数据库:    todoapp
+用户名:    todouser
+密码:      todopass123
+```
+
+### 驱动属性（如果连接失败）
+
+在 DBeaver 的"驱动属性"中添加：
+```
+ssl = false
+sslmode = disable
+```
 
 ---
 
