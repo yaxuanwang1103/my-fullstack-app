@@ -7,6 +7,29 @@
 
 ---
 
+## [2.1.0] - 2025-10-26
+
+### ✨ 新增
+- 脚本：`scripts/ecs-register-update.ps1`（一键注册任务并更新 frontend/backend-a/backend-b 服务）
+- 脚本：`scripts/ecs-open-ports.ps1`（开放端口，支持多个服务/端口/来源，兼容 PowerShell 逗号参数）
+- 脚本：`scripts/ecs-restrict-ports.ps1`（将端口入站收紧至指定 IP/段）
+- 脚本：`scripts/frontend-build-push.ps1`（前端生产镜像构建/推送，支持 `-SkipLogin` 绕过 PowerShell 管道问题）
+- 脚本：`scripts/route53-update-a-record.ps1`（可选；将域名 A 记录指向当前 ECS 任务 Public IP）
+- 前端生产镜像支持：`frontend/Dockerfile`（多阶段构建 + Nginx 80）、`frontend/nginx.conf`（SPA 路由）
+
+### 🔧 变更
+- `frontend/src/App.jsx` 改为使用 `VITE_API_URL` 作为 API 基址（构建时注入）
+- `task-definition-frontend.json` 移除运行时 `VITE_API_URL` 环境变量（生产镜像改为构建时注入）
+- `task-definition-backend-a.json`/`task-definition-backend-b.json` 显式加入 `hostPort`（3000/4000）
+- 移除任务定义中 `awslogs-create-group` 以符合 ECS 日志配置规范
+
+### 🔐 安全
+- 建议前端 80 端口保持公开；后端 3000/4000 端口仅允许运营者公网 IP 访问（提供收紧/放行脚本）
+
+### 🧩 兼容性与注意事项
+- 账户暂未开放创建 Load Balancer；当前通过任务 Public IP + 安全组进行对外/内互访。
+- 待解禁后可切换 ALB/NLB + Route 53，以获得稳定入口与 HTTPS。
+
 ## [2.0.2] - 2024-10-25
 
 ### 📚 文档新增

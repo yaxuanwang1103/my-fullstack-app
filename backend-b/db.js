@@ -18,6 +18,9 @@ export async function connectPostgreSQL() {
     database: process.env.POSTGRES_DB || "todoapp",
     user: process.env.POSTGRES_USER || "postgres",
     password: process.env.POSTGRES_PASSWORD,
+    ssl: process.env.POSTGRES_HOST && process.env.POSTGRES_HOST !== "localhost" 
+      ? { rejectUnauthorized: false } 
+      : false,
   });
 
   // 测试连接

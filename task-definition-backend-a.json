@@ -1,0 +1,38 @@
+{
+  "family": "todoapp-backend-a",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::982455488619:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "backend-a",
+      "image": "982455488619.dkr.ecr.us-east-2.amazonaws.com/todoapp-backend-a:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "PORT_A", "value": "3000"},
+        {"name": "BACKEND_B_URL", "value": "http://18.218.248.217:4000"},
+        {"name": "POSTGRES_HOST", "value": "todoapp-db.cvamqo4kywnu.us-east-2.rds.amazonaws.com"},
+        {"name": "POSTGRES_PORT", "value": "5432"},
+        {"name": "POSTGRES_DB", "value": "todoapp"},
+        {"name": "POSTGRES_USER", "value": "todouser"},
+        {"name": "POSTGRES_PASSWORD", "value": "*Sd123456*"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/todoapp-backend-a",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "backend-b",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "description": "数据存储服务",
   "main": "server.js",

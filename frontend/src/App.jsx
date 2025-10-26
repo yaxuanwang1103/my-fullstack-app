@@ -13,7 +13,8 @@ function App() {
   }, []);
 
   const fetchTodos = () => {
-    axios.get('http://localhost:3000/api/messages').then(res => {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    axios.get(`${API_BASE}/api/messages`).then(res => {
       setTodos(res.data.items || []);
       setStats(res.data.stats);
     });
@@ -24,7 +25,8 @@ function App() {
     if (!task.trim()) return;
     
     try {
-      const res = await axios.post('http://localhost:3000/api/messages', { 
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const res = await axios.post(`${API_BASE}/api/messages`, { 
         author: '匿名用户',
         text: task 
       });
