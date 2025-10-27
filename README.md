@@ -475,6 +475,14 @@ CREATE TABLE IF NOT EXISTS todos (
 - 📚 [CI/CD 完全学习指南](./CICD完全学习指南.md)
 - ⚡ [CI/CD 快速配置指南](./CICD快速配置指南.md)
 
+### 监控和日志
+
+查看监控和日志管理指南：
+- 📊 [监控和日志指南](./监控和日志指南.md)
+- 🔍 使用 `monitor.bat` 实时监控服务状态
+- 📝 使用 `view-logs.bat` 查看日志
+- 💾 使用 `view-data.bat` 查看数据库数据
+
 ---
 
 ## 🚧 未来改进方向
@@ -488,7 +496,9 @@ CREATE TABLE IF NOT EXISTS todos (
 - [ ] 实现任务搜索和过滤
 - [ ] Kubernetes 部署支持
 - [x] ~~CI/CD 自动化部署~~ ✅ 已完成
-- [ ] 监控和日志系统
+- [x] ~~监控和日志系统~~ ✅ 已完成（基础版）
+- [ ] 访问统计和分析
+- [ ] 告警通知系统
 
 ---
 
