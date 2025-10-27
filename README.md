@@ -33,11 +33,17 @@
 - ✅ 实时统计分析
 - ✅ 可视化展示
 
-### 阶段 6：容器化部署 🐳 **（最新升级）**
+### 阶段 6：容器化部署 🐳
 - ✅ Docker 容器化所有服务
 - ✅ Docker Compose 一键启动
 - ✅ PostgreSQL 容器化部署
 - ✅ 环境隔离和版本管理
+
+### 阶段 7：CI/CD 自动化 🚀 **（最新升级）**
+- ✅ GitHub Actions 持续集成
+- ✅ 自动化测试和构建
+- ✅ Docker 镜像自动构建和推送
+- ✅ 自动部署和发布
 
 ---
 
@@ -433,6 +439,40 @@ CREATE TABLE IF NOT EXISTS todos (
 
 ---
 
+## 🚀 CI/CD 自动化
+
+本项目已配置完整的 CI/CD 流程，使用 GitHub Actions 实现自动化构建、测试和部署。
+
+### 工作流
+
+- **CI - 持续集成** (`.github/workflows/ci.yml`)
+  - 代码格式检查
+  - 前端构建测试
+  - 后端测试
+  - Docker 镜像构建测试
+
+- **Docker Build** (`.github/workflows/docker-build.yml`)
+  - 自动构建 Docker 镜像
+  - 推送到 Docker Hub
+  - 多平台支持 (amd64/arm64)
+
+- **Deploy** (`.github/workflows/deploy.yml`)
+  - 自动部署到服务器
+  - 健康检查
+  - 自动回滚
+
+- **Release** (`.github/workflows/release.yml`)
+  - 自动创建 GitHub Release
+  - 生成更新日志
+
+### 快速开始
+
+查看详细的 CI/CD 配置指南：
+- 📚 [CI/CD 完全学习指南](./CICD完全学习指南.md)
+- ⚡ [CI/CD 快速配置指南](./CICD快速配置指南.md)
+
+---
+
 ## 🚧 未来改进方向
 
 - [ ] 接入真正的 AI 模型（如 GPT）提高分类准确率
@@ -443,7 +483,7 @@ CREATE TABLE IF NOT EXISTS todos (
 - [ ] 添加数据导出功能
 - [ ] 实现任务搜索和过滤
 - [ ] Kubernetes 部署支持
-- [ ] CI/CD 自动化部署
+- [x] ~~CI/CD 自动化部署~~ ✅ 已完成
 - [ ] 监控和日志系统
 
 ---

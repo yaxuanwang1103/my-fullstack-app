@@ -1,0 +1,61 @@
+name: Release - 发布新版本
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: 创建 GitHub Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取完整历史
+      
+      - name: 📋 提取版本号
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 版本: $VERSION"
+      
+      - name: 📝 生成更新日志
+        id: changelog
+        run: |
+          # 从 CHANGELOG.md 提取当前版本的更新内容
+          VERSION=${{ steps.version.outputs.version }}
+          
+          # 提取版本段落
+          awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1 > release_notes.md
+          
+          # 如果没有找到，使用默认内容
+          if [ ! -s release_notes.md ]; then
+            echo "## 更新内容" > release_notes.md
+            echo "" >> release_notes.md
+            echo "请查看完整的 [CHANGELOG.md](./CHANGELOG.md)" >> release_notes.md
+          fi
+          
+          cat release_notes.md
+      
+      - name: 🎉 创建 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            CHANGELOG.md
+            README.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 📢 发布通知
+        run: |
+          echo "🎉 Release ${{ steps.version.outputs.version }} 创建成功！"
+          echo "🔗 查看: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
