@@ -1,6 +1,6 @@
 {
   "name": "my-fullstack-app",
-  "version": "2.1.1",
+  "version": "2.2.1",
   "type": "module",
   "description": "",
   "main": "index.js",

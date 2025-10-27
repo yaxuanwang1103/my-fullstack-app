@@ -7,6 +7,32 @@
 
 ---
 
+## [2.2.1] - 2025-10-27
+
+### 🚀 新增
+- **CI/CD 自动化**：完整的 GitHub Actions 工作流配置
+  - 持续集成（代码检查、构建、测试）
+  - Docker 镜像自动构建和推送
+  - 自动部署到服务器
+  - 自动创建 GitHub Release
+- 添加后端测试文件（backend-a/test.js, backend-b/test.js）
+- 完整的 CI/CD 学习文档
+
+### 🔧 修复
+- 升级 actions/upload-artifact 到 v4（修复弃用警告）
+
+### 📚 文档
+- 新增 `CICD完全学习指南.md` - 详细的 CI/CD 教程
+- 新增 `CICD快速配置指南.md` - 快速上手指南
+- 新增 `CICD学习总结.md` - 学习总结
+- 新增 `开始使用CICD.md` - 操作清单
+- 更新 README.md 添加 CI/CD 章节
+
+### 🔄 变更
+- 项目进入阶段 7：CI/CD 自动化
+
+---
+
 ## [2.1.1] - 2025-10-26
 
 ### 📚 文档
