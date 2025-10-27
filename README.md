@@ -483,6 +483,31 @@ CREATE TABLE IF NOT EXISTS todos (
 - 📝 使用 `view-logs.bat` 查看日志
 - 💾 使用 `view-data.bat` 查看数据库数据
 
+### 可视化监控工具
+
+**方法 1：使用监控仪表板（推荐）**
+- 打开 `监控仪表板.html` 在浏览器中查看
+- 实时显示访问统计、系统状态、数据库统计
+- 自动刷新，无需命令行
+
+**方法 2：安装 Portainer（Docker 可视化管理）**
+```bash
+# 运行安装脚本
+./install-portainer.bat
+
+# 访问 http://localhost:9000
+# 功能：查看容器、日志、资源使用
+```
+
+**方法 3：安装 Dozzle（实时日志查看器）**
+```bash
+# 运行安装脚本
+./install-dozzle.bat
+
+# 访问 http://localhost:8888
+# 功能：实时查看所有容器日志
+```
+
 ---
 
 ## 🚧 未来改进方向

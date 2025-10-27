@@ -7,6 +7,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 访问统计
+let stats = {
+  totalRequests: 0,
+  messageCreated: 0,
+  startTime: new Date(),
+  lastRequest: null
+};
+
+// 日志中间件
+app.use((req, res, next) => {
+  stats.totalRequests++;
+  stats.lastRequest = new Date();
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
+  next();
+});
+
 const BACKEND_B_URL = process.env.BACKEND_B_URL || 'http://localhost:4000';
 
 // 智能分析任务函数
@@ -44,9 +61,20 @@ function analyzeTask(task) {
   return { category, priority, deadline };
 }
 
+// 统计接口
+app.get('/api/stats', (req, res) => {
+  const uptime = Math.floor((new Date() - stats.startTime) / 1000);
+  res.json({
+    ...stats,
+    uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`,
+    uptimeSeconds: uptime
+  });
+});
+
 // 创建任务 - 智能处理
 app.post('/api/messages', async (req, res) => {
   try {
+    stats.messageCreated++;
     const { author, text } = req.body;
     
     console.log('📝 后端A收到任务:', text);

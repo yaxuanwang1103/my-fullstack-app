@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: todouser
       POSTGRES_PASSWORD: todopass123
       POSTGRES_DB: todoapp
-      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
