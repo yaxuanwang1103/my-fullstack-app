@@ -7,9 +7,27 @@
 
 ---
 
+## [2.1.1] - 2025-10-26
+
+### 📚 文档
+- 新增 `推送到GitHub指南.md` - 完整的 GitHub 推送教程
+- 更新版本号到 2.1.1
+- 完善项目文档结构
+
+### 🔧 维护
+- 统一版本号管理
+- 优化发布流程
+
+---
+
 ## [2.1.0] - 2025-10-26
 
 ### ✨ 新增
+- **前端功能完善**：修复 API 连接问题，前端完全可用
+  - 任务添加功能正常工作
+  - 任务列表显示正常
+  - 统计功能实时更新
+  - 智能分类提示正常显示
 - 脚本：`scripts/ecs-register-update.ps1`（一键注册任务并更新 frontend/backend-a/backend-b 服务）
 - 脚本：`scripts/ecs-open-ports.ps1`（开放端口，支持多个服务/端口/来源，兼容 PowerShell 逗号参数）
 - 脚本：`scripts/ecs-restrict-ports.ps1`（将端口入站收紧至指定 IP/段）
@@ -17,7 +35,12 @@
 - 脚本：`scripts/route53-update-a-record.ps1`（可选；将域名 A 记录指向当前 ECS 任务 Public IP）
 - 前端生产镜像支持：`frontend/Dockerfile`（多阶段构建 + Nginx 80）、`frontend/nginx.conf`（SPA 路由）
 
-### 🔧 变更
+### 🔧 修复
+- **前端 API 连接问题**：修复开发环境下的 API 基础 URL 配置
+- **CORS 配置优化**：确保前后端通信正常
+- **Docker 网络配置**：优化容器间通信
+
+### 🔄 变更
 - `frontend/src/App.jsx` 改为使用 `VITE_API_URL` 作为 API 基址（构建时注入）
 - `task-definition-frontend.json` 移除运行时 `VITE_API_URL` 环境变量（生产镜像改为构建时注入）
 - `task-definition-backend-a.json`/`task-definition-backend-b.json` 显式加入 `hostPort`（3000/4000）
@@ -29,6 +52,13 @@
 ### 🧩 兼容性与注意事项
 - 账户暂未开放创建 Load Balancer；当前通过任务 Public IP + 安全组进行对外/内互访。
 - 待解禁后可切换 ALB/NLB + Route 53，以获得稳定入口与 HTTPS。
+
+### 📊 测试状态
+- ✅ 本地 Docker 部署：完全正常
+- ✅ 前端界面：完全可用
+- ✅ 任务添加：正常工作
+- ✅ 智能分类：正常工作
+- ✅ 统计功能：正常工作
 
 ## [2.0.2] - 2024-10-25
 

@@ -18,7 +18,7 @@
       ],
       "environment": [
         {"name": "PORT_A", "value": "3000"},
-        {"name": "BACKEND_B_URL", "value": "http://18.218.248.217:4000"},
+        {"name": "BACKEND_B_URL", "value": "http://3.21.159.255:4000"},
         {"name": "POSTGRES_HOST", "value": "todoapp-db.cvamqo4kywnu.us-east-2.rds.amazonaws.com"},
         {"name": "POSTGRES_PORT", "value": "5432"},
         {"name": "POSTGRES_DB", "value": "todoapp"},
