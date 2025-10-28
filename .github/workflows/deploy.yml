@@ -17,7 +17,7 @@ on:
           - production
 
 env:
-  AWS_REGION: us-east-1  # 修改为你的AWS区域
+  AWS_REGION: us-east-2  # 修改为你的AWS区域
   ECS_CLUSTER: todoapp-cluster
   
   # Backend A
