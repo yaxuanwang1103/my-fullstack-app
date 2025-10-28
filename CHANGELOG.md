@@ -7,6 +7,26 @@
 
 ---
 
+## [2.3.1] - 2025-10-27
+
+### 🚀 新增
+- **AWS ECR 集成**：切换到 AWS Elastic Container Registry
+  - 更新 GitHub Actions 工作流使用 ECR
+  - 添加 ECR 仓库创建脚本
+  - 完整的 AWS ECR 使用指南
+
+### 🐛 修复
+- 修复 Backend-B SSL 连接错误
+  - 禁用 PostgreSQL SSL 连接（本地开发环境）
+  - Backend-B 不再崩溃重启
+
+### 📚 文档
+- 添加 `AWS_ECR使用指南.md`
+- 添加 `create-ecr-repos.sh` 脚本
+- 更新 README 添加 AWS ECR 集成阶段
+
+---
+
 ## [2.3.0] - 2025-10-27
 
 ### 🚀 新增
