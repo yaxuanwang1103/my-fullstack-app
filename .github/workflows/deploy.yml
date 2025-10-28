@@ -3,7 +3,7 @@ name: 🚀 Auto Deploy to AWS ECS & S3
 on:
   push:
     branches:
-      - main  # 监听 main 分支推送触发部署
+      - main
 
 env:
   AWS_REGION: us-east-2
@@ -21,15 +21,15 @@ permissions:
 
 jobs:
   deploy:
-    name: Build & Deploy to AWS
     runs-on: ubuntu-latest
+    name: Build & Deploy to AWS
 
     steps:
       # 1️⃣ 检出代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ 登录到 AWS（你需要在 Secrets 里设置 AWS_ACCESS_KEY_ID 和 AWS_SECRET_ACCESS_KEY）
+      # 2️⃣ 登录 AWS
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -37,57 +37,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3️⃣ 登录到 ECR
+      # 3️⃣ 登录到 ECR（关键修正：显式传 aws-region）
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
           aws-region: ${{ env.AWS_REGION }}
 
-      # 4️⃣ 构建并推送三个镜像（后端A/B + 前端）
+      # 4️⃣ 构建并推送镜像
       - name: Build and push Docker images to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           echo "Building and pushing backend-a..."
           docker build -t $ECR_REPOSITORY_BACKEND_A ./backend-a
-          docker tag $ECR_REPOSITORY_BACKEND_A:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_A}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_A}:latest
+          docker tag $ECR_REPOSITORY_BACKEND_A:latest $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_A:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_A:latest
 
           echo "Building and pushing backend-b..."
           docker build -t $ECR_REPOSITORY_BACKEND_B ./backend-b
-          docker tag $ECR_REPOSITORY_BACKEND_B:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_B}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_B}:latest
+          docker tag $ECR_REPOSITORY_BACKEND_B:latest $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_B:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_B:latest
 
           echo "Building and pushing frontend..."
           docker build -t $ECR_REPOSITORY_FRONTEND ./frontend
-          docker tag $ECR_REPOSITORY_FRONTEND:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_FRONTEND}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_FRONTEND}:latest
+          docker tag $ECR_REPOSITORY_FRONTEND:latest $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:latest
 
-      # 5️⃣ 部署 ECS 三个服务
-      - name: Deploy backend-a service
+      # 5️⃣ 更新 ECS 服务
+      - name: Update ECS backend-a
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_BACKEND_A \
-            --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service $SERVICE_BACKEND_A --force-new-deployment --region $AWS_REGION
 
-      - name: Deploy backend-b service
+      - name: Update ECS backend-b
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_BACKEND_B \
-            --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service $SERVICE_BACKEND_B --force-new-deployment --region $AWS_REGION
 
-      - name: Deploy frontend service
+      - name: Update ECS frontend
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_FRONTEND \
-            --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service $SERVICE_FRONTEND --force-new-deployment --region $AWS_REGION
 
-      # 6️⃣ （可选）前端构建后上传到 S3
+      # 6️⃣ 构建前端并同步到 S3
       - name: Build and sync frontend to S3
         run: |
           cd frontend
           npm ci
           npm run build
-          aws s3 sync dist/ s3://$S3_BUCKET/ --delete
+          aws s3 sync dist/ s3://$S3_BUCKET/ --delete --region $AWS_REGION
