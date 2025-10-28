@@ -1,159 +1,91 @@
-name: CD - 持续部署到 AWS ECS
+name: 🚀 Auto Deploy to AWS ECS & S3
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:  # 允许手动触发
-    inputs:
-      environment:
-        description: '部署环境'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - development
-          - staging
-          - production
+    branches:
+      - main  # 监听 main 分支推送触发部署
 
 env:
-  AWS_REGION: us-east-2  # 修改为你的AWS区域
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY_BACKEND_A: todoapp-backend-a
+  ECR_REPOSITORY_BACKEND_B: todoapp-backend-b
+  ECR_REPOSITORY_FRONTEND: todoapp-frontend
   ECS_CLUSTER: todoapp-cluster
-  
-  # Backend A
-  ECS_SERVICE_BACKEND_A: todoapp-backend-a
-  ECS_TASK_DEFINITION_BACKEND_A: todoapp-backend-a
-  CONTAINER_NAME_BACKEND_A: todoapp-backend-a
-  
-  # Backend B
-  ECS_SERVICE_BACKEND_B: todoapp-backend-b
-  ECS_TASK_DEFINITION_BACKEND_B: todoapp-backend-b
-  CONTAINER_NAME_BACKEND_B: todoapp-backend-b
-  
-  # Frontend
-  ECS_SERVICE_FRONTEND: todoapp-frontend
-  ECS_TASK_DEFINITION_FRONTEND: todoapp-frontend
-  CONTAINER_NAME_FRONTEND: todoapp-frontend
+  SERVICE_BACKEND_A: todoapp-backend-a
+  SERVICE_BACKEND_B: todoapp-backend-b
+  SERVICE_FRONTEND: todoapp-frontend
+  S3_BUCKET: sd-todoapp-bucket
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: 部署到 AWS ECS
+    name: Build & Deploy to AWS
     runs-on: ubuntu-latest
-    
-    environment:
-      name: ${{ github.event.inputs.environment || 'production' }}
-    
+
     steps:
-      - name: 📥 检出代码
-        uses: actions/checkout@v3
-      
-      - name: 📋 获取版本信息
-        id: version
-        run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-          else
-            VERSION="latest"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📌 部署版本: $VERSION"
-      
-      - name: 🔐 配置 AWS 凭证
-        uses: aws-actions/configure-aws-credentials@v2
+      # 1️⃣ 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ 登录到 AWS（你需要在 Secrets 里设置 AWS_ACCESS_KEY_ID 和 AWS_SECRET_ACCESS_KEY）
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
-      - name: 🔑 登录到 Amazon ECR
+
+      # 3️⃣ 登录到 ECR
+      - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-      
-      - name: 🚀 部署 Backend A 到 ECS
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4️⃣ 构建并推送三个镜像（后端A/B + 前端）
+      - name: Build and push Docker images to ECR
         run: |
-          echo "🚀 部署 Backend A..."
+          echo "Building and pushing backend-a..."
+          docker build -t $ECR_REPOSITORY_BACKEND_A ./backend-a
+          docker tag $ECR_REPOSITORY_BACKEND_A:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_A}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_A}:latest
+
+          echo "Building and pushing backend-b..."
+          docker build -t $ECR_REPOSITORY_BACKEND_B ./backend-b
+          docker tag $ECR_REPOSITORY_BACKEND_B:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_B}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_BACKEND_B}:latest
+
+          echo "Building and pushing frontend..."
+          docker build -t $ECR_REPOSITORY_FRONTEND ./frontend
+          docker tag $ECR_REPOSITORY_FRONTEND:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_FRONTEND}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY_FRONTEND}:latest
+
+      # 5️⃣ 部署 ECS 三个服务
+      - name: Deploy backend-a service
+        run: |
           aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE_BACKEND_A }} \
-            --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND_A }}:6 \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_BACKEND_A \
             --force-new-deployment
-      
-      - name: 🚀 部署 Backend B 到 ECS
+
+      - name: Deploy backend-b service
         run: |
-          echo "🚀 部署 Backend B..."
           aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE_BACKEND_B }} \
-            --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND_B }}:4 \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_BACKEND_B \
             --force-new-deployment
-      
-      - name: 🚀 部署 Frontend 到 ECS
+
+      - name: Deploy frontend service
         run: |
-          echo "🚀 部署 Frontend..."
           aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE_FRONTEND }} \
-            --task-definition ${{ env.ECS_TASK_DEFINITION_FRONTEND }}:5 \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_FRONTEND \
             --force-new-deployment
-      
-      - name: ⏳ 等待 Backend A 部署完成
+
+      # 6️⃣ （可选）前端构建后上传到 S3
+      - name: Build and sync frontend to S3
         run: |
-          echo "⏳ 等待 Backend A 服务稳定..."
-          aws ecs wait services-stable \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_BACKEND_A }}
-          echo "✅ Backend A 部署完成"
-      
-      - name: ⏳ 等待 Backend B 部署完成
-        run: |
-          echo "⏳ 等待 Backend B 服务稳定..."
-          aws ecs wait services-stable \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_BACKEND_B }}
-          echo "✅ Backend B 部署完成"
-      
-      - name: ⏳ 等待 Frontend 部署完成
-        run: |
-          echo "⏳ 等待 Frontend 服务稳定..."
-          aws ecs wait services-stable \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_FRONTEND }}
-          echo "✅ Frontend 部署完成"
-      
-      - name: 📊 检查服务状态
-        run: |
-          echo "📊 检查所有服务状态..."
-          
-          echo "Backend A 状态:"
-          aws ecs describe-services \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_BACKEND_A }} \
-            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
-            --output table
-          
-          echo "Backend B 状态:"
-          aws ecs describe-services \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_BACKEND_B }} \
-            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
-            --output table
-          
-          echo "Frontend 状态:"
-          aws ecs describe-services \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE_FRONTEND }} \
-            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
-            --output table
-      
-      - name: 📢 部署通知
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 部署成功！"
-            echo "🎉 版本 ${{ steps.version.outputs.version }} 已部署到 ECS"
-            echo "📦 Cluster: ${{ env.ECS_CLUSTER }}"
-            echo "🔧 Services: Backend A, Backend B, Frontend"
-          else
-            echo "❌ 部署失败！"
-            echo "请检查日志并考虑回滚"
-          fi
+          cd frontend
+          npm ci
+          npm run build
+          aws s3 sync dist/ s3://$S3_BUCKET/ --delete
