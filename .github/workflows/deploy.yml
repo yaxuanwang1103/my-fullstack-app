@@ -1,4 +1,4 @@
-name: CD - 持续部署
+name: CD - 持续部署到 AWS ECS
 
 on:
   push:
@@ -16,14 +16,32 @@ on:
           - staging
           - production
 
+env:
+  AWS_REGION: us-east-1  # 修改为你的AWS区域
+  ECS_CLUSTER: todoapp-cluster
+  
+  # Backend A
+  ECS_SERVICE_BACKEND_A: todoapp-backend-a
+  ECS_TASK_DEFINITION_BACKEND_A: todoapp-backend-a
+  CONTAINER_NAME_BACKEND_A: todoapp-backend-a
+  
+  # Backend B
+  ECS_SERVICE_BACKEND_B: todoapp-backend-b
+  ECS_TASK_DEFINITION_BACKEND_B: todoapp-backend-b
+  CONTAINER_NAME_BACKEND_B: todoapp-backend-b
+  
+  # Frontend
+  ECS_SERVICE_FRONTEND: todoapp-frontend
+  ECS_TASK_DEFINITION_FRONTEND: todoapp-frontend
+  CONTAINER_NAME_FRONTEND: todoapp-frontend
+
 jobs:
   deploy:
-    name: 部署到服务器
+    name: 部署到 AWS ECS
     runs-on: ubuntu-latest
     
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: https://your-app-url.com
     
     steps:
       - name: 📥 检出代码
@@ -40,93 +58,102 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📌 部署版本: $VERSION"
       
-      - name: 🚀 部署到服务器
-        uses: appleboy/ssh-action@master
+      - name: 🔐 配置 AWS 凭证
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            echo "🚀 开始部署..."
-            
-            # 进入项目目录
-            cd /path/to/your/app || exit 1
-            
-            # 拉取最新代码
-            echo "📥 拉取最新代码..."
-            git pull origin main
-            
-            # 拉取最新镜像
-            echo "🐳 拉取 Docker 镜像..."
-            docker-compose pull
-            
-            # 停止旧容器
-            echo "🛑 停止旧容器..."
-            docker-compose down
-            
-            # 启动新容器
-            echo "▶️ 启动新容器..."
-            docker-compose up -d
-            
-            # 等待服务启动
-            echo "⏳ 等待服务启动..."
-            sleep 10
-            
-            # 检查容器状态
-            echo "📊 检查容器状态..."
-            docker-compose ps
-            
-            # 清理旧镜像
-            echo "🧹 清理旧镜像..."
-            docker image prune -f
-            
-            echo "✅ 部署完成！"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: 🔍 健康检查
+      - name: 🔑 登录到 Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: 🚀 部署 Backend A 到 ECS
         run: |
-          echo "🔍 执行健康检查..."
+          echo "🚀 部署 Backend A..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_BACKEND_A }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND_A }}:6 \
+            --force-new-deployment
+      
+      - name: 🚀 部署 Backend B 到 ECS
+        run: |
+          echo "🚀 部署 Backend B..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_BACKEND_B }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION_BACKEND_B }}:4 \
+            --force-new-deployment
+      
+      - name: 🚀 部署 Frontend 到 ECS
+        run: |
+          echo "🚀 部署 Frontend..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_FRONTEND }} \
+            --task-definition ${{ env.ECS_TASK_DEFINITION_FRONTEND }}:5 \
+            --force-new-deployment
+      
+      - name: ⏳ 等待 Backend A 部署完成
+        run: |
+          echo "⏳ 等待 Backend A 服务稳定..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND_A }}
+          echo "✅ Backend A 部署完成"
+      
+      - name: ⏳ 等待 Backend B 部署完成
+        run: |
+          echo "⏳ 等待 Backend B 服务稳定..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND_B }}
+          echo "✅ Backend B 部署完成"
+      
+      - name: ⏳ 等待 Frontend 部署完成
+        run: |
+          echo "⏳ 等待 Frontend 服务稳定..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_FRONTEND }}
+          echo "✅ Frontend 部署完成"
+      
+      - name: 📊 检查服务状态
+        run: |
+          echo "📊 检查所有服务状态..."
           
-          # 检查前端
-          curl -f http://${{ secrets.SERVER_HOST }}:5173 || echo "⚠️ 前端健康检查失败"
+          echo "Backend A 状态:"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND_A }} \
+            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
+            --output table
           
-          # 检查后端A
-          curl -f http://${{ secrets.SERVER_HOST }}:3000/health || echo "⚠️ 后端A健康检查失败"
+          echo "Backend B 状态:"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND_B }} \
+            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
+            --output table
           
-          # 检查后端B
-          curl -f http://${{ secrets.SERVER_HOST }}:4000/health || echo "⚠️ 后端B健康检查失败"
-          
-          echo "✅ 健康检查完成"
+          echo "Frontend 状态:"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_FRONTEND }} \
+            --query 'services[0].[serviceName,status,runningCount,desiredCount]' \
+            --output table
       
       - name: 📢 部署通知
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ 部署成功！"
-            echo "🎉 版本 ${{ steps.version.outputs.version }} 已部署到生产环境"
+            echo "🎉 版本 ${{ steps.version.outputs.version }} 已部署到 ECS"
+            echo "📦 Cluster: ${{ env.ECS_CLUSTER }}"
+            echo "🔧 Services: Backend A, Backend B, Frontend"
           else
             echo "❌ 部署失败！"
-            echo "请检查日志并手动回滚"
+            echo "请检查日志并考虑回滚"
           fi
-  
-  # 回滚任务（可选）
-  rollback:
-    name: 回滚部署
-    runs-on: ubuntu-latest
-    if: failure()
-    needs: deploy
-    
-    steps:
-      - name: 🔄 执行回滚
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            echo "🔄 开始回滚..."
-            cd /path/to/your/app
-            git checkout HEAD~1
-            docker-compose down
-            docker-compose up -d
-            echo "✅ 回滚完成"
